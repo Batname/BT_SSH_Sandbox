@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "BG_SSH",
+	"Description": "",
+	"Category": "Other",
+	"CreatedBy": "Dennis Dubinin",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "BG_SSH",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

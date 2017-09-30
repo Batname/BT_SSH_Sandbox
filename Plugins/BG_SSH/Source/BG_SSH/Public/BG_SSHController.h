@@ -35,6 +35,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
 	FString Password;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
+	FString Command;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
 	int ConnectedCode;
 

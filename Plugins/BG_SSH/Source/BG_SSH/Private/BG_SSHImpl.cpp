@@ -33,19 +33,19 @@ static int waitsocket(int socket_fd, LIBSSH2_SESSION *session)
 	return rc;
 }
 
-FBG_SSHImpl::FBG_SSHImpl(const FString& Hostname, const FString& Username, const FString& Password)
+FBG_SSHImpl::FBG_SSHImpl(const FString& Hostname, const FString& Username, const FString& Password) :
+	Hostname(Hostname)
+	, Username(Username)
+	, Password(Password)
 {
-	//this->Hostname = StringCast<ANSICHAR>(*Hostname).Get();
-	//this->Username = StringCast<ANSICHAR>(*Username).Get();
-	//this->Password = StringCast<ANSICHAR>(*Password).Get();
+}
 
-	this->Hostname = "192.168.178.73";
-	this->Username = "pi";
-	this->Password = "21091091";
-	this->Commandline = "uptime";
+FBG_SSHImpl::~FBG_SSHImpl()
+{
+}
 
-	UE_LOG(BG_SSH_LOG, Warning, TEXT(">> FBG_SSHImpl::FBG_SSHImpl %s, %s, %s"), *Hostname, *Username, *Password);
-
+int FBG_SSHImpl::Connect()
+{
 #ifdef WIN32
 	WSADATA wsadata;
 	int err;
@@ -57,15 +57,11 @@ FBG_SSHImpl::FBG_SSHImpl(const FString& Hostname, const FString& Username, const
 
 	rc = libssh2_init(0);
 	checkf(rc == 0, TEXT("libssh2 initialization failed (%d)"), rc);
-	hostaddr = inet_addr(this->Hostname);
-}
 
-FBG_SSHImpl::~FBG_SSHImpl()
-{
-}
 
-int FBG_SSHImpl::Connect()
-{
+	hostaddr = inet_addr(StringCast<ANSICHAR>(*Hostname).Get());
+
+
     /* Ultra basic "connect to port 22 on localhost"
      * Your code is responsible for creating the socket establishing the
      * connection
@@ -120,14 +116,14 @@ int FBG_SSHImpl::Connect()
 		struct libssh2_knownhost *host;
 #if LIBSSH2_VERSION_NUM >= 0x010206
 		/* introduced in 1.2.6 */
-		int check = libssh2_knownhost_checkp(nh, Hostname, 22,
+		int check = libssh2_knownhost_checkp(nh, StringCast<ANSICHAR>(*Hostname).Get(), 22,
 			fingerprint, len,
 			LIBSSH2_KNOWNHOST_TYPE_PLAIN |
 			LIBSSH2_KNOWNHOST_KEYENC_RAW,
 			&host);
 #else
 		/* 1.2.5 or older */
-		int check = libssh2_knownhost_check(nh, hostname,
+		int check = libssh2_knownhost_check(nh, StringCast<ANSICHAR>(*Hostname).Get(),
 			fingerprint, len,
 			LIBSSH2_KNOWNHOST_TYPE_PLAIN |
 			LIBSSH2_KNOWNHOST_KEYENC_RAW,
@@ -164,9 +160,9 @@ int FBG_SSHImpl::Connect()
 
 bool FBG_SSHImpl::Authenticate()
 {
-	if (strlen(Password) != 0) {
+	if (strlen(StringCast<ANSICHAR>(*Password).Get()) != 0) {
 		/* We could authenticate via password */
-		while ((rc = libssh2_userauth_password(session, Username, Password)) ==
+		while ((rc = libssh2_userauth_password(session, StringCast<ANSICHAR>(*Username).Get(), StringCast<ANSICHAR>(*Password).Get())) ==
 			LIBSSH2_ERROR_EAGAIN);
 		if (rc) {
 			UE_LOG(BG_SSH_LOG, Warning, TEXT("Authentication by password failed. %s here is the pass"), *FString(Password));
@@ -176,12 +172,12 @@ bool FBG_SSHImpl::Authenticate()
 	}
 	else {
 		/* Or by public key */
-		while ((rc = libssh2_userauth_publickey_fromfile(session, Username,
+		while ((rc = libssh2_userauth_publickey_fromfile(session, StringCast<ANSICHAR>(*Username).Get(),
 			"/home/user/"
 			".ssh/id_rsa.pub",
 			"/home/user/"
 			".ssh/id_rsa",
-			Password)) ==
+			StringCast<ANSICHAR>(*Password).Get())) ==
 			LIBSSH2_ERROR_EAGAIN);
 		if (rc) {
 			UE_LOG(BG_SSH_LOG, Warning, TEXT("Authentication by public key failed."));
@@ -193,7 +189,7 @@ bool FBG_SSHImpl::Authenticate()
 	return true;
 }
 
-bool FBG_SSHImpl::ExecuteCommand()
+bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
 {
 	/* Exec non-blocking on the remove host */
 	while ((channel = libssh2_channel_open_session(session)) == NULL &&
@@ -208,7 +204,7 @@ bool FBG_SSHImpl::ExecuteCommand()
 		Shutdown();
 		return false;
 	}
-	while ((rc = libssh2_channel_exec(channel, Commandline)) ==
+	while ((rc = libssh2_channel_exec(channel, StringCast<ANSICHAR>(*Command).Get())) ==
 		LIBSSH2_ERROR_EAGAIN)
 	{
 		waitsocket(sock, session);

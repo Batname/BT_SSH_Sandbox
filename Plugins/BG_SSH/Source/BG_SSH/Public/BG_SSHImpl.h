@@ -54,7 +54,7 @@ public:
 	bool Authenticate();
 
 	/** Set command for execute */
-	bool ExecuteCommand();
+	bool ExecuteCommand(const FString& Command);
 
 	/**  Close connection */
 	void Shutdown();
@@ -64,11 +64,9 @@ private:
 	/************************************************************/
 	/* Connection Data											*/
 	/************************************************************/
-
-	const char* Hostname;
-	const char* Username;
-	const char* Password;
-	const char* Commandline;
+	FString Hostname;
+	FString Username;
+	FString Password;
 
 	unsigned long hostaddr;
 	int sock;

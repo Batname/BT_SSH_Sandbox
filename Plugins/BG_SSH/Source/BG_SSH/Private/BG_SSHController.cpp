@@ -36,7 +36,7 @@ void UBG_SSHController::BeginPlay()
 
 	ConnectedCode = BG_SSHImpl->Connect();
 
-	BG_SSHImpl->ExecuteCommand();
+	BG_SSHImpl->ExecuteCommand(Command);
 	
 }
 

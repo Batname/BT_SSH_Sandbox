@@ -9,7 +9,10 @@
 DECLARE_LOG_CATEGORY_EXTERN(BG_SSH_LOG, Log, All);
 
 // Declaration of delegates
-DECLARE_DELEGATE_OneParam(FStereoCaptureDoneDelegate, const FString&);
+DECLARE_DELEGATE_OneParam(FSHHConnectionSuccess, int);
+DECLARE_DELEGATE_OneParam(FSHHConnectionFalue, int);
+DECLARE_MULTICAST_DELEGATE_OneParam(FSHHCommandResponseFalue, int);
+DECLARE_MULTICAST_DELEGATE_OneParam(FSHHCommandResponseString, const FString&);
 
 
 /**

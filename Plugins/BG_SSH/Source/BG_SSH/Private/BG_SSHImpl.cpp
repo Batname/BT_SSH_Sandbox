@@ -33,18 +33,42 @@ static int waitsocket(int socket_fd, LIBSSH2_SESSION *session)
 	return rc;
 }
 
-FBG_SSHImpl::FBG_SSHImpl(const FString& Hostname, const FString& Username, const FString& Password) :
+FBG_SSHImpl::FBG_SSHImpl(
+	const FString& Hostname,
+	const FString& Username,
+	const FString& Password,
+	FSHHConnectionSuccess SHHConnectionSuccess,
+	FSHHConnectionFalue SHHConnectionFalue,
+	FSHHCommandResponseFalue SHHCommandResponseFalue,
+	FSHHCommandResponseString SHHCommandResponseString
+) :
 	Hostname(Hostname)
 	, Username(Username)
 	, Password(Password)
+	, SHHConnectionSuccess(SHHConnectionSuccess)
+	, SHHConnectionFalue(SHHConnectionFalue)
+	, SHHCommandResponseFalue(SHHCommandResponseFalue)
+	, SHHCommandResponseString(SHHCommandResponseString)
 {
+	bIsConnected = false;
+	bIsExecuteCommandNow = false;
 }
 
 FBG_SSHImpl::~FBG_SSHImpl()
 {
+	Shutdown();
 }
 
-int FBG_SSHImpl::Connect()
+void FBG_SSHImpl::Connect()
+{
+	if (!bIsConnected)
+	{
+		//Start a background task in a low priority thread
+		(new FAutoDeleteAsyncTask<SSHConnectionTask>(this))->StartBackgroundTask();
+	}
+}
+
+void FBG_SSHImpl::ConnectAsync_Internal()
 {
 #ifdef WIN32
 	WSADATA wsadata;
@@ -62,27 +86,29 @@ int FBG_SSHImpl::Connect()
 	hostaddr = inet_addr(StringCast<ANSICHAR>(*Hostname).Get());
 
 
-    /* Ultra basic "connect to port 22 on localhost"
-     * Your code is responsible for creating the socket establishing the
-     * connection
-     */
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+	/* Ultra basic "connect to port 22 on localhost"
+	* Your code is responsible for creating the socket establishing the
+	* connection
+	*/
+	sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(22);
-    sin.sin_addr.s_addr = hostaddr;
-    if (connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0) {
+	sin.sin_family = AF_INET;
+	sin.sin_port = htons(22);
+	sin.sin_addr.s_addr = hostaddr;
+	if (connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0) {
 		UE_LOG(BG_SSH_LOG, Warning, TEXT(">> failed to socket connect"));
-		return -1;
-    }
+		SHHConnectionFalue.ExecuteIfBound(1);
+		return;
+	}
 
 	/* Create a session instance */
 	session = libssh2_session_init();
 	if (!session)
 	{
-		return -1;
+		SHHConnectionFalue.ExecuteIfBound(2);
+		return;
 	}
-		
+
 
 	/* tell libssh2 we want it all done non-blocking */
 	libssh2_session_set_blocking(session, 0);
@@ -94,13 +120,16 @@ int FBG_SSHImpl::Connect()
 		LIBSSH2_ERROR_EAGAIN);
 	if (rc) {
 		UE_LOG(BG_SSH_LOG, Warning, TEXT("Failure establishing SSH session: %d"), rc);
-		return -1;
+		SHHConnectionFalue.ExecuteIfBound(3);
+		return;
 	}
 
 	nh = libssh2_knownhost_init(session);
-	if (!nh) {
+	if (!nh)
+	{
 		/* eeek, do cleanup here */
-		return 2;
+		SHHConnectionFalue.ExecuteIfBound(4);
+		return;
 	}
 
 	/* read all hosts from here */
@@ -136,9 +165,11 @@ int FBG_SSHImpl::Connect()
 		* fine or bail out.
 		*****/
 	}
-	else {
+	else
+	{
 		/* eeek, do cleanup here */
-		return 3;
+		SHHConnectionFalue.ExecuteIfBound(5);
+		return;
 	}
 
 	libssh2_knownhost_free(nh);
@@ -146,16 +177,17 @@ int FBG_SSHImpl::Connect()
 	if (!Authenticate())
 	{
 		// Cant make Authentication
-		return 4;
+		SHHConnectionFalue.ExecuteIfBound(6);
+		return;
 	}
 
 #if 0
 	libssh2_trace(session, ~0);
 #endif
 
-	UE_LOG(BG_SSH_LOG, Warning, TEXT("CONNECTION SUCCESS"));
-
-	return 0;
+	SHHConnectionSuccess.ExecuteIfBound(0);
+	bIsConnected = true;
+	return;
 }
 
 bool FBG_SSHImpl::Authenticate()
@@ -189,7 +221,18 @@ bool FBG_SSHImpl::Authenticate()
 	return true;
 }
 
-bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
+void FBG_SSHImpl::ExecuteCommand(const FString& Command)
+{
+	if (!bIsExecuteCommandNow && bIsConnected)
+	{
+		bIsExecuteCommandNow = true;
+
+		//Start a background task in a low priority thread
+		(new FAutoDeleteAsyncTask<SSHExecuteCommandTask>(this, Command))->StartBackgroundTask();
+	}
+}
+
+void FBG_SSHImpl::ExecuteCommandAsync_Internal(const FString& Command)
 {
 	/* Exec non-blocking on the remove host */
 	while ((channel = libssh2_channel_open_session(session)) == NULL &&
@@ -201,8 +244,8 @@ bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
 	if (channel == NULL)
 	{
 		UE_LOG(BG_SSH_LOG, Warning, TEXT("channel == NULL"));
-		Shutdown();
-		return false;
+		SHHCommandResponseFalue.Broadcast(1);
+		return;
 	}
 	while ((rc = libssh2_channel_exec(channel, StringCast<ANSICHAR>(*Command).Get())) ==
 		LIBSSH2_ERROR_EAGAIN)
@@ -212,8 +255,8 @@ bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
 	if (rc != 0)
 	{
 		UE_LOG(BG_SSH_LOG, Warning, TEXT("rc != 0"));
-		Shutdown();
-		return false;
+		SHHCommandResponseFalue.Broadcast(2);
+		return;
 	}
 
 	for (;; )
@@ -228,13 +271,11 @@ bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
 			{
 				int i;
 				bytecount += rc;
-				UE_LOG(BG_SSH_LOG, Warning, TEXT("We read:"));
 				for (i = 0; i < rc; ++i)
 				{
 					fputc(buffer[i], stderr);
 				}
-
-				UE_LOG(BG_SSH_LOG, Warning, TEXT("%s"), *FString(buffer));
+				SHHCommandResponseString.Broadcast(FString(buffer));
 			}
 			else {
 				if (rc != LIBSSH2_ERROR_EAGAIN)
@@ -278,20 +319,29 @@ bool FBG_SSHImpl::ExecuteCommand(const FString& Command)
 	{
 		UE_LOG(BG_SSH_LOG, Warning, TEXT("EXIT: %d bytecount: %d"), exitcode, bytecount);
 
+		// Wrong command
+		if (exitcode != 0)
+		{
+			SHHCommandResponseFalue.Broadcast(exitcode);
+		}
 	}
 
 	libssh2_channel_free(channel);
 	channel = NULL;
 
-	Shutdown();
-
 	UE_LOG(BG_SSH_LOG, Warning, TEXT("FINISH COMMAND EXECUTION"));
-
-	return false;
+	bIsExecuteCommandNow = false;
 }
 
 void FBG_SSHImpl::Shutdown()
 {
+	if (!bIsConnected)
+	{
+		return;
+	}
+
+	bIsConnected = false;
+
 	libssh2_session_disconnect(session,
 		"Normal Shutdown, Thank you for playing");
 	libssh2_session_free(session);

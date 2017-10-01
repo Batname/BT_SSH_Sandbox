@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 
+#include "IBG_SSH.h"
+#include "CoreMinimal.h"
+#include "Async/AsyncWork.h"
 #include "libssh2.h"
 
 
@@ -38,29 +40,55 @@
 #include <ctype.h>
 #include <assert.h>
 
+
+class SSHConnectionTask;
+class SSHExecuteCommandTask;
+
 /**
  * 
  */
 class BG_SSH_API FBG_SSHImpl
 {
+	friend SSHConnectionTask;
+	friend SSHExecuteCommandTask;
+
 public:
-	FBG_SSHImpl(const FString& Hostname, const FString& Username, const FString& Password);
+	FBG_SSHImpl(
+		const FString& Hostname,
+		const FString& Username,
+		const FString& Password,
+		FSHHConnectionSuccess SHHConnectionSuccess,
+		FSHHConnectionFalue SHHConnectionFalue,
+		FSHHCommandResponseFalue SHHCommandResponseFalue,
+		FSHHCommandResponseString SHHCommandResponseString
+	);
+
 	~FBG_SSHImpl();
 
 	/** Connect call */
-	int Connect();
+	void Connect();
 
 	/** Check our password */
 	bool Authenticate();
 
 	/** Set command for execute */
-	bool ExecuteCommand(const FString& Command);
+	void ExecuteCommand(const FString& Command);
 
 	/**  Close connection */
 	void Shutdown();
 
+	/** return status of SSH connection */
+	FORCEINLINE bool IsConnected() { return bIsConnected; }
 
 private:
+	/************************************************************/
+	/* Async Functions											*/
+	/************************************************************/
+
+	void ConnectAsync_Internal();
+	void ExecuteCommandAsync_Internal(const FString& Command);
+
+
 	/************************************************************/
 	/* Connection Data											*/
 	/************************************************************/
@@ -81,4 +109,77 @@ private:
 	size_t len;
 	LIBSSH2_KNOWNHOSTS *nh;
 	int type;
+
+
+	/************************************************************/
+	/* References to Delegates									*/
+	/************************************************************/
+	FSHHConnectionSuccess SHHConnectionSuccess;
+	FSHHConnectionFalue SHHConnectionFalue;
+	FSHHCommandResponseFalue SHHCommandResponseFalue;
+	FSHHCommandResponseString SHHCommandResponseString;
+
+
+	bool bIsConnected;
+	bool bIsExecuteCommandNow;
+
+};
+
+
+/************************************************************/
+/* Run connection function in separate thread				*/
+/************************************************************/
+
+class SSHConnectionTask : public FNonAbandonableTask
+{
+	/** Reference to base implementation class */
+	FBG_SSHImpl* BG_SSHImpl;
+
+public:
+	//Constructor
+	SSHConnectionTask(FBG_SSHImpl* BG_SSHImpl)
+	{
+		this->BG_SSHImpl = BG_SSHImpl;
+	}
+
+	/*Function needed by the UE in order to determine what's the tasks' status*/
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(UMGAsyncTask, STATGROUP_ThreadPoolAsyncTasks);
+	}
+
+	/*This function executes each time this thread is active - UE4 searches for a function named DoWord() and executes it*/
+	void DoWork()
+	{
+		BG_SSHImpl->ConnectAsync_Internal();
+	}
+};
+
+class SSHExecuteCommandTask : public FNonAbandonableTask
+{
+	/** Reference to base implementation class */
+	FBG_SSHImpl* BG_SSHImpl;
+
+	/** Command for Execution */
+	FString Command;
+
+public:
+	//Constructor
+	SSHExecuteCommandTask(FBG_SSHImpl* BG_SSHImpl, const FString& Command)
+	{
+		this->BG_SSHImpl = BG_SSHImpl;
+		this->Command = Command;
+	}
+
+	/*Function needed by the UE in order to determine what's the tasks' status*/
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(UMGAsyncTask, STATGROUP_ThreadPoolAsyncTasks);
+	}
+
+	/*This function executes each time this thread is active - UE4 searches for a function named DoWord() and executes it*/
+	void DoWork()
+	{
+		BG_SSHImpl->ExecuteCommandAsync_Internal(Command);
+	}
 };

@@ -17,8 +17,34 @@ UBG_SSHController::UBG_SSHController()
 
 void UBG_SSHController::InitSSH()
 {
+	// Binding Delegates
+	SHHConnectionSuccess.BindUObject(this, &UBG_SSHController::OnSHHConnectionSuccess);
+	SHHConnectionFalue.BindUObject(this, &UBG_SSHController::OnSHHConnectionFalue);
+	SHHCommandResponseFalue.AddUObject(this, &UBG_SSHController::OnSHHCommandResponseFalue);
+	SHHCommandResponseString.AddUObject(this, &UBG_SSHController::OnSHHCommandResponseString);
+
 	// Initialize our implementation
-	BG_SSHImpl = new FBG_SSHImpl(Hostname, Username, Password);
+	BG_SSHImpl = new FBG_SSHImpl(Hostname, Username, Password, SHHConnectionSuccess, SHHConnectionFalue, SHHCommandResponseFalue, SHHCommandResponseString);
+}
+
+void UBG_SSHController::OnSHHConnectionSuccess(int Code)
+{
+	UE_LOG(BG_SSH_LOG, Warning, TEXT("UBG_SSHController::OnSHHConnectionSuccess"));
+}
+
+void UBG_SSHController::OnSHHConnectionFalue(int Code)
+{
+	UE_LOG(BG_SSH_LOG, Warning, TEXT("UBG_SSHController::OnSHHConnectionFalue"));
+}
+
+void UBG_SSHController::OnSHHCommandResponseFalue(int Code)
+{
+	UE_LOG(BG_SSH_LOG, Warning, TEXT("UBG_SSHController::OnSHHCommandResponseFalue, Code %d"), Code);
+}
+
+void UBG_SSHController::OnSHHCommandResponseString(const FString & Response)
+{
+	UE_LOG(BG_SSH_LOG, Warning, TEXT("UBG_SSHController::OnSHHCommandResponseString %s"), *Response);
 }
 
 UBG_SSHController::~UBG_SSHController()
@@ -34,14 +60,35 @@ void UBG_SSHController::BeginPlay()
 
 	// ...
 
-	ConnectedCode = BG_SSHImpl->Connect();
-
-	BG_SSHImpl->ExecuteCommand(Command);
-	
+	BG_SSHImpl->Connect();
 }
 
 void UBG_SSHController::ConnectSSH()
 {
+}
+
+void UBG_SSHController::RunSSHCommand(const TArray<FString>& Args)
+{
+	if (!Args.Num())
+	{
+		// No arguments
+		UE_LOG(BG_SSH_LOG, Warning, TEXT("No arguments ERROR"));
+		return;
+	}
+
+	if (BG_SSHImpl->IsConnected())
+	{
+		FString SSHCommand = Args[0];
+		if (!SSHCommand.IsEmpty())
+		{
+			// Do something here
+			BG_SSHImpl->ExecuteCommand(SSHCommand);
+		}
+	}
+	else
+	{
+		UE_LOG(BG_SSH_LOG, Warning, TEXT("There is no SSH connection"));
+	}
 }
 
 

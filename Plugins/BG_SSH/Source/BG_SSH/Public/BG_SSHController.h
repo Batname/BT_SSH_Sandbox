@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "IBG_SSH.h"
 #include "BG_SSHController.generated.h"
 
 
@@ -35,20 +36,37 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
 	FString Password;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
-	FString Command;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
-	int ConnectedCode;
-
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	//  Create new Implemntation of SSH
 	void InitSSH();
+
+	/** Connection to SSH */
+	void RunSSHCommand(const TArray<FString>& Args);
 private:
+
+	void OnSHHConnectionSuccess(int Code);
+	void OnSHHConnectionFalue(int Code);
+	void OnSHHCommandResponseFalue(int Code);
+	void OnSHHCommandResponseString(const FString& Response);
 
 
 	class FBG_SSHImpl* BG_SSHImpl;
+
+
+	// Add Delegates to class
+	FSHHConnectionSuccess SHHConnectionSuccess;
+	FSHHConnectionFalue SHHConnectionFalue;
+	FSHHCommandResponseFalue SHHCommandResponseFalue;
+	FSHHCommandResponseString SHHCommandResponseString;
+
+public:
+	// Declare console command, it is possible to move constructor to head and register as well
+	FAutoConsoleCommand RunSSHCommandFromConsole = FAutoConsoleCommand(
+		TEXT("ssh.RunSSHCommand"),
+		*NSLOCTEXT("BG_SSH", "CommandText_RunSSHCommand", "Run SSH command from game console").ToString(),
+		FConsoleCommandWithArgsDelegate::CreateUObject(this, &UBG_SSHController::RunSSHCommand)
+	);
 };

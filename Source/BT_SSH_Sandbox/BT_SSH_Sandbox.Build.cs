@@ -14,7 +14,7 @@ public class BT_SSH_Sandbox : ModuleRules
             "Engine",
             "InputCore",
             "HeadMountedDisplay",
-            //"BG_SSH"
+            "BG_SSH"
         });
 	}
 }

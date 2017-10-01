@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Engine/CanvasRenderTarget2D.h"
+#include "Engine/Canvas.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "BG_SSHActor.generated.h"
@@ -23,6 +25,15 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
 	class UBG_SSHController* BG_SSHController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
+	class UCanvasRenderTarget2D* CanvasRenderTarget2D;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
+	FString TerminalHistory;
+
+	UFUNCTION()
+	virtual void OnCanvasRenderTargetUpdate(class UCanvas* Canvas, int32 Width, int32 Height);
 
 
 public:	

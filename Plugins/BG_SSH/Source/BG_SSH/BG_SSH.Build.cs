@@ -51,8 +51,10 @@ public class BG_SSH : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
-				"Projects"
+                "Core",
+                "CoreUObject",
+                "Engine",
+				"Projects",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -62,7 +64,6 @@ public class BG_SSH : ModuleRules
 			new string[]
 			{
                 "CoreUObject",
-                "Engine",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

@@ -2,6 +2,7 @@
 
 #include "BG_SSHActor.h"
 #include "BG_SSHController.h"
+#include "Engine.h"
 
 // Sets default values
 ABG_SSHActor::ABG_SSHActor()
@@ -12,14 +13,29 @@ ABG_SSHActor::ABG_SSHActor()
 	// Attach SHH menager component
 	BG_SSHController = CreateDefaultSubobject<UBG_SSHController>(TEXT("BG_SSHController"));
 
+	TerminalHistory = ">";
 }
 
 // Called when the game starts or when spawned
 void ABG_SSHActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	UWorld* World = GetWorld();
+
+	CanvasRenderTarget2D = UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(World, UCanvasRenderTarget2D::StaticClass(), 2400, 1600);
+
+	CanvasRenderTarget2D->OnCanvasRenderTargetUpdate.AddDynamic(this, &ABG_SSHActor::OnCanvasRenderTargetUpdate);
+
+	CanvasRenderTarget2D->UpdateResource();
 	
 }
+
+void ABG_SSHActor::OnCanvasRenderTargetUpdate(UCanvas * Canvas, int32 Width, int32 Height)
+{
+	Canvas->DrawText(GEngine->GetMediumFont(), FText::FromString(TerminalHistory), 0.f, 0.f, 10.0f, 10.0f, FFontRenderInfo());
+}
+
 
 void ABG_SSHActor::PostInitializeComponents()
 {

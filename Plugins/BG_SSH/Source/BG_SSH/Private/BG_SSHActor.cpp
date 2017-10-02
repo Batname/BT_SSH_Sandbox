@@ -28,14 +28,24 @@ void ABG_SSHActor::BeginPlay()
 	CanvasRenderTarget2D->OnCanvasRenderTargetUpdate.AddDynamic(this, &ABG_SSHActor::OnCanvasRenderTargetUpdate);
 
 	CanvasRenderTarget2D->UpdateResource();
-	
+
+	// Input handle test
+	GameViewportClient = GetWorld()->GetGameViewport();
+
+	GameViewportClient->OnGameViewportInputKey().BindLambda([&](FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent) -> bool
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">> OnGameViewportInputKey %s"), *Key.ToString());
+
+		GameViewportClient->OnGameViewportInputKey().Unbind();
+
+		return true;
+	});
 }
 
 void ABG_SSHActor::OnCanvasRenderTargetUpdate(UCanvas * Canvas, int32 Width, int32 Height)
 {
 	Canvas->DrawText(GEngine->GetMediumFont(), FText::FromString(TerminalHistory), 0.f, 0.f, 10.0f, 10.0f, FFontRenderInfo());
 }
-
 
 void ABG_SSHActor::PostInitializeComponents()
 {
@@ -49,5 +59,10 @@ void ABG_SSHActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+
+	if (GameViewportClient)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("GetMousePosition() %s"), *GameViewportClient->GetMousePosition().ToString());
+	}
 }
 

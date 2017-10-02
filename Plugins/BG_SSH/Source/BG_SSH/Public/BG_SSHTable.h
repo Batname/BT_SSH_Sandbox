@@ -6,6 +6,7 @@
 #include "BG_SSHActor.h"
 #include "BG_SSHTable.generated.h"
 
+
 /**
  * 
  */

@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "BG_SSHActor.generated.h"
 
+
 UCLASS()
 class BG_SSH_API ABG_SSHActor : public AActor
 {
@@ -32,14 +33,16 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
 	FString TerminalHistory;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
+	UGameViewportClient* GameViewportClient;
+
 	UFUNCTION()
 	virtual void OnCanvasRenderTargetUpdate(class UCanvas* Canvas, int32 Width, int32 Height);
-
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	
-	
+private:
 };

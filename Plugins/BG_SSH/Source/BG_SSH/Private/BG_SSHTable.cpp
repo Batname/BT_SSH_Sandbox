@@ -40,6 +40,7 @@ void ABG_SSHTable::BeginPlay()
 	DynamicMatInstance = TerminalMeshComponent->CreateAndSetMaterialInstanceDynamic(0);
 
 	Super::BeginPlay();
+
 }
 
 void ABG_SSHTable::OnCanvasRenderTargetUpdate(UCanvas * Canvas, int32 Width, int32 Height)

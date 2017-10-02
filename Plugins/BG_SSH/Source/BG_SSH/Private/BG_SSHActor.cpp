@@ -3,6 +3,9 @@
 #include "BG_SSHActor.h"
 #include "BG_SSHController.h"
 #include "Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameModeBase.h"
+#include "GameFramework/PlayerController.h"
 
 // Sets default values
 ABG_SSHActor::ABG_SSHActor()
@@ -14,6 +17,10 @@ ABG_SSHActor::ABG_SSHActor()
 	BG_SSHController = CreateDefaultSubobject<UBG_SSHController>(TEXT("BG_SSHController"));
 
 	TerminalHistory = ">";
+
+
+	bIsGameViewportInputBind = false;
+	bIsStartTyping = false;
 }
 
 // Called when the game starts or when spawned
@@ -29,22 +36,87 @@ void ABG_SSHActor::BeginPlay()
 
 	CanvasRenderTarget2D->UpdateResource();
 
+	// Read player Controller
+	PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	GameModeBase = UGameplayStatics::GetGameMode(GetWorld());
+
+
 	// Input handle test
 	GameViewportClient = GetWorld()->GetGameViewport();
-
-	GameViewportClient->OnGameViewportInputKey().BindLambda([&](FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent) -> bool
-	{
-		UE_LOG(LogTemp, Warning, TEXT(">> OnGameViewportInputKey %s"), *Key.ToString());
-
-		GameViewportClient->OnGameViewportInputKey().Unbind();
-
-		return true;
-	});
 }
 
 void ABG_SSHActor::OnCanvasRenderTargetUpdate(UCanvas * Canvas, int32 Width, int32 Height)
 {
+	UE_LOG(LogTemp, Warning, TEXT("ABG_SSHActor::OnCanvasRenderTargetUpdate"));
+
 	Canvas->DrawText(GEngine->GetMediumFont(), FText::FromString(TerminalHistory), 0.f, 0.f, 10.0f, 10.0f, FFontRenderInfo());
+}
+
+void ABG_SSHActor::BindGameViewportInputKey()
+{
+	if (GameViewportClient && !bIsGameViewportInputBind)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BindGameViewportInputKey"));
+
+		if (PlayerController)
+		{
+			PlayerController->PlayerInput->FlushPressedKeys();
+		}
+
+
+		GameViewportClient->OnGameViewportInputKey().BindLambda([&](FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent) -> bool
+		{
+			OnGameViewportInputKey(Key, ModifierKeysState, InputEvent);
+			bIsGameViewportInputBind = true;
+			return true;
+		});
+	}
+}
+
+void ABG_SSHActor::UnBindGameViewportInputKey()
+{
+	if (GameViewportClient && bIsGameViewportInputBind)
+	{
+		GameViewportClient->OnGameViewportInputKey().Unbind();
+		bIsGameViewportInputBind = false;
+		bIsStartTyping = false;
+	}
+}
+
+void ABG_SSHActor::OnGameViewportInputKey(FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent)
+{
+	// Do not handle release events
+	if (InputEvent == EInputEvent::IE_Released)
+	{
+		return;
+	}
+
+	if (Key.GetDisplayName().EqualTo(FText::FromString("`")))
+	{
+		if (!bIsStartTyping)
+		{
+			bIsStartTyping = true;
+		}
+		return; // Do not print Tilde
+	}
+
+	//Escape
+	if (Key.GetDisplayName().EqualTo(FText::FromString("Escape")))
+	{
+		UnBindGameViewportInputKey();
+
+		return; // Do not print Escape
+	}
+
+	if (bIsStartTyping)
+	{
+		UE_LOG(LogTemp, Warning, TEXT(">> GetDisplayName %s"), *Key.GetDisplayName().ToString());
+
+		TerminalHistory = TerminalHistory.Append(Key.GetFName().ToString());
+
+		CanvasRenderTarget2D->UpdateResource();
+	}
+
 }
 
 void ABG_SSHActor::PostInitializeComponents()

@@ -36,13 +36,27 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "BG_SSH")
 	UGameViewportClient* GameViewportClient;
 
+	class APlayerController* PlayerController;
+	class AGameModeBase* GameModeBase;
+
 	UFUNCTION()
 	virtual void OnCanvasRenderTargetUpdate(class UCanvas* Canvas, int32 Width, int32 Height);
+
+	UFUNCTION(BlueprintCallable, Category = "BG_SSH")
+	virtual void BindGameViewportInputKey();
+
+	UFUNCTION(BlueprintCallable, Category = "BG_SSH")
+	virtual void UnBindGameViewportInputKey();
+
+	virtual void OnGameViewportInputKey(FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent);
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	
 private:
+
+	int32 bIsGameViewportInputBind : 1;
+
+	int32 bIsStartTyping : 1;
 };

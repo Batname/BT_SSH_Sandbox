@@ -22,6 +22,7 @@ ABG_SSHTable::ABG_SSHTable()
 	if (TerminalWindowMesh.Succeeded())
 	{
 		TerminalMeshComponent->SetStaticMesh(TerminalWindowMesh.Object);
+		TerminalMeshComponent->RelativeLocation = FVector(0.f, 200.f, 0.f);
 		TerminalMeshComponent->RelativeScale3D = FVector(1.f, 0.2f, 0.15f);
 		static ConstructorHelpers::FObjectFinder<UMaterial> TerminalMainMat(TEXT("Material'/BG_SSH/Assets/Materials/TerminalMainMat.TerminalMainMat'"));
 		if (TerminalMainMat.Succeeded())
@@ -32,6 +33,10 @@ ABG_SSHTable::ABG_SSHTable()
 
 	BoxInteractionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxInteractionComponent"));
 	BoxInteractionComponent->SetupAttachment(RootComponent);
+	BoxInteractionComponent->RelativeLocation = FVector(-88.f, 10.f, 148.f);
+	BoxInteractionComponent->RelativeScale3D = FVector(2.75f, 5.5f, 4.75f);
+
+
 }
 
 void ABG_SSHTable::BeginPlay()
@@ -41,7 +46,23 @@ void ABG_SSHTable::BeginPlay()
 
 	Super::BeginPlay();
 
+	// Add collision overlap
+	BoxInteractionComponent->OnComponentBeginOverlap.AddDynamic(this, &ABG_SSHTable::OnBoxInteractionBeginOverlap);
+	BoxInteractionComponent->OnComponentEndOverlap.AddDynamic(this, &ABG_SSHTable::OnOverlapEnd);
 }
+
+void ABG_SSHTable::OnBoxInteractionBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnBoxInteractionBeginOverlap"));
+	BindGameViewportInputKey();
+}
+
+void ABG_SSHTable::OnOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnOverlapEnd"));
+	UnBindGameViewportInputKey();
+}
+
 
 void ABG_SSHTable::OnCanvasRenderTargetUpdate(UCanvas * Canvas, int32 Width, int32 Height)
 {

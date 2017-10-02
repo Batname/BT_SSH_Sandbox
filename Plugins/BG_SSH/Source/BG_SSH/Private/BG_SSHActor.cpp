@@ -112,7 +112,7 @@ void ABG_SSHActor::OnGameViewportInputKey(FKey Key, FModifierKeysState ModifierK
 	{
 		UE_LOG(LogTemp, Warning, TEXT(">> GetDisplayName %s"), *Key.GetDisplayName().ToString());
 
-		TerminalHistory = TerminalHistory.Append(Key.GetFName().ToString());
+		TerminalHistory = TerminalHistory.Append(Key.GetDisplayName().ToString());
 
 		CanvasRenderTarget2D->UpdateResource();
 	}

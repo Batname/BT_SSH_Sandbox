@@ -42,4 +42,10 @@ protected:
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+private:
+	uint32 bIsInteracting : 1;
+
+	/** Set differend texture border, it depends of ssh conectivity state */
+	void SetTerminalBorder();
+
 };

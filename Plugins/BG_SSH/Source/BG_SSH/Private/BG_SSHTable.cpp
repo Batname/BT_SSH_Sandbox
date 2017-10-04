@@ -8,6 +8,8 @@
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Runtime/Engine/Classes/Engine/Canvas.h"
+#include "BG_SSHController.h"
+
 
 ABG_SSHTable::ABG_SSHTable()
 { 
@@ -18,7 +20,7 @@ ABG_SSHTable::ABG_SSHTable()
 	TerminalMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TerminalMeshComponent"));
 	TerminalMeshComponent->SetupAttachment(RootComponent);
 	// Add Mesh and Texture
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> TerminalWindowMesh(TEXT("StaticMesh'/BG_SSH/Assets/Meshes/Terminal_Window.Terminal_Window'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> TerminalWindowMesh(TEXT("StaticMesh'/BG_SSH/Assets/Meshes/TerminalModel.TerminalModel'"));
 	if (TerminalWindowMesh.Succeeded())
 	{
 		TerminalMeshComponent->SetStaticMesh(TerminalWindowMesh.Object);
@@ -36,7 +38,7 @@ ABG_SSHTable::ABG_SSHTable()
 	BoxInteractionComponent->RelativeLocation = FVector(-88.f, 10.f, 148.f);
 	BoxInteractionComponent->RelativeScale3D = FVector(2.75f, 5.5f, 4.75f);
 
-
+	bIsInteracting = false;
 }
 
 void ABG_SSHTable::BeginPlay()
@@ -55,12 +57,47 @@ void ABG_SSHTable::OnBoxInteractionBeginOverlap(UPrimitiveComponent* OverlappedC
 {
 	UE_LOG(LogTemp, Warning, TEXT("OnBoxInteractionBeginOverlap"));
 	BindGameViewportInputKey();
+	bIsInteracting = true;
+	SetTerminalBorder();
+
+	if (BG_SSHController)
+	{
+		CleanTerminalTextureSessionStr(FString::Printf(TEXT(">>%s@%s \n"), *BG_SSHController->Username, *BG_SSHController->Hostname));
+	}
 }
 
 void ABG_SSHTable::OnOverlapEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
 	UE_LOG(LogTemp, Warning, TEXT("OnOverlapEnd"));
 	UnBindGameViewportInputKey();
+	bIsInteracting = false;
+	SetTerminalBorder();
+	CleanTerminalTextureSessionStr();
+}
+
+void ABG_SSHTable::SetTerminalBorder()
+{
+	if (DynamicMatInstance)
+	{
+		FLinearColor TerminalBorderColor;
+		if (BG_SSHController->IsSSHConected() && bIsInteracting)
+		{
+			TerminalBorderColor.R = 0.006887f;
+			TerminalBorderColor.G = 0.13f;
+			TerminalBorderColor.B = 0.f;
+			TerminalBorderColor.A = 0.f;
+		}
+		else
+		{
+			TerminalBorderColor.R = 0.05f;
+			TerminalBorderColor.G = 0.004967f;
+			TerminalBorderColor.B = 0.f;
+			TerminalBorderColor.A = 0.f;
+		}
+
+		DynamicMatInstance->SetVectorParameterValue(FName("TerminalBorderColor"), TerminalBorderColor);
+	}
+
 }
 
 

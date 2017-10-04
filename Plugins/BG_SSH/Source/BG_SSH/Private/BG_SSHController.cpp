@@ -91,6 +91,11 @@ void UBG_SSHController::RunSSHCommand(const TArray<FString>& Args)
 	}
 }
 
+bool UBG_SSHController::IsSSHConected()
+{
+	return BG_SSHImpl && BG_SSHImpl->IsConnected();
+}
+
 
 // Called every frame
 void UBG_SSHController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

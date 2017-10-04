@@ -16,11 +16,19 @@ ABG_SSHActor::ABG_SSHActor()
 	// Attach SHH menager component
 	BG_SSHController = CreateDefaultSubobject<UBG_SSHController>(TEXT("BG_SSHController"));
 
-	TerminalHistory = ">";
-
+	CleanTerminalTextureSessionStr();
 
 	bIsGameViewportInputBind = false;
 	bIsStartTyping = false;
+}
+
+void ABG_SSHActor::CleanTerminalTextureSessionStr(const FString& DefaulStr)
+{
+	TerminalHistory = DefaulStr;
+	if (CanvasRenderTarget2D)
+	{
+		CanvasRenderTarget2D->UpdateResource();
+	}
 }
 
 // Called when the game starts or when spawned

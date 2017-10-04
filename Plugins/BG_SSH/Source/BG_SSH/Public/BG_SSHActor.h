@@ -50,6 +50,9 @@ protected:
 
 	virtual void OnGameViewportInputKey(FKey Key, FModifierKeysState ModifierKeysState, EInputEvent InputEvent);
 
+	/** Clean terminal texture session */
+	void CleanTerminalTextureSessionStr(const FString& DefaulStr = ">>");
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

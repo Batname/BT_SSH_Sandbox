@@ -64,3 +64,5 @@ Plugins/**/Binaries/**
 
 # Ignore any saved local files
 Saved/**
+
+/Import

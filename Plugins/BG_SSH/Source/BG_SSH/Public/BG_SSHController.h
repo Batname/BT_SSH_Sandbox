@@ -19,15 +19,7 @@ public:
 
 	~UBG_SSHController();
 
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-	/** Connection to SSH */
-	UFUNCTION(BlueprintCallable, exec, Category="BG_SSH")
-	void ConnectSSH();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="BG_SSH")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
 	FString Hostname;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
@@ -35,6 +27,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "BG_SSH")
 	FString Password;
+
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
+
+	/** Connection to SSH */
+	UFUNCTION(BlueprintCallable, exec, Category="BG_SSH")
+	void ConnectSSH();
 
 public:	
 	// Called every frame
@@ -45,6 +45,10 @@ public:
 
 	/** Connection to SSH */
 	void RunSSHCommand(const TArray<FString>& Args);
+
+	/** Check if SSH Connected */
+	FORCEINLINE bool IsSSHConected();
+
 private:
 
 	void OnSHHConnectionSuccess(int Code);
